@@ -8,15 +8,15 @@ type Interval = (Int, Int)
 type CoordPair = (Coord, Coord)
 type IntervalMap = Map Int [Interval]
 
+-- >>> main
 main :: IO ()
 main = do
-  input <-getContents
+  input <- readFile "./15.txt"
   let parsed = Prelude.map parseLine $ lines input
-  print parsed
+  -- putStr $ unlines $ Prelude.map show parsed
   let m = getMap parsed
-  print m
-  print $ m ! 10
-  print $ getCoveredSquares $ m ! 10
+  print "answer:\n"
+  print $ getCoveredSquares $ m ! 200000 
 
 {-
 >>> parseLine  "Sensor at x=2, y=18: closest beacon is at x=-2, y=15"
@@ -28,18 +28,20 @@ parseLine x = readToTuples trimmedCoords
   coordParts = Prelude.filter isCoord $ words x
   trimmedCoords = Prelude.map (Prelude.filter isNum) coordParts
 
---- >>> getMap [((2,18), (-2,15)), ((9,16),(10,16))]
--- fromList [(-5,[(34,2)]),(-4,[(33,3)]),(-3,[(32,4)]),(-2,[(31,5)]),(-1,[(30,6)]),(0,[(29,7)]),(1,[(28,8)]),(2,[(27,9)]),(3,[(26,10)]),(4,[(25,11)]),(5,[(24,12)]),(6,[(23,13)]),(7,[(22,14)]),(8,[(21,15)]),(9,[(20,16)]),(10,[(21,11)])]
+--- >>> getMap [((12,14), (10,16)), ((8,7),(2,10))] ! 10
+-- [(12,14)]
 getMap :: [CoordPair] -> IntervalMap
-getMap cps = Prelude.foldl (unionWith mergeLists) Map.empty intervals
+getMap cps = unionsWith mergeLists intervals
  where
   intervals = Prelude.map getIntervals cps
 
+isNum :: Char -> Bool
 isNum x
   | isNumber x = True
   | x == '-' = True
   | otherwise = False
 
+isCoord :: [Char] -> Bool
 isCoord (x : xs)
   | x == 'x' = True
   | x == 'y' = True
@@ -48,8 +50,11 @@ isCoord (x : xs)
 manhattan :: Num a => ((a, a), (a, a)) -> a
 manhattan ((x1, y1), (x2, y2)) = abs (x1 - x2) + abs (y1 - y2)
 
--- >>> getIntervals ( (-2,2),(0,0)) 
--- fromList [(-2,[(-2,-2)]),(-1,[(-3,-1)]),(0,[(-4,0)]),(1,[(-5,1)]),(2,[(-6,2)]),(3,[(-5,1)]),(4,[(-4,0)]),(5,[(-3,-1)]),(6,[(-2,-2)])]
+-- >>> getIntervals ( (12,14),(10,16)) ! 10
+-- [(12,12)]
+-- >>> getIntervals ((8,7),(2,10)) ! 10
+-- [(2,14)]
+--
 getIntervals :: CoordPair -> IntervalMap
 getIntervals x =
   Prelude.foldl f empty [sensorY - mDistance .. sensorY + mDistance]
@@ -65,16 +70,16 @@ readToTuples strs = ((sensorX, sensorY), (beaconX, beaconY))
  where
   [sensorX, sensorY, beaconX, beaconY] = Prelude.map (\x -> read x :: Int) strs
 
--- >>> mergeLists [(1,2), (1,3), (1,4), (2,5), (3,6)] [  (5, 15), (12, 17)]
--- [(1,17)]
+-- >>> mergeLists [(12,12)] [(2,14)]
+-- [(2,14)]
 mergeLists :: [Interval] -> [Interval] -> [Interval]
 mergeLists a b = mergeSorted sorted
  where
-  sorted = sortOn fst a ++ b
+  sorted = sortOn fst $ a ++ b
   mergeSorted :: [Interval] -> [Interval]
   mergeSorted [x] = [x]
   mergeSorted ((s1, e1) : (s2, e2) : xs)
-    | e1 >= e2 = mergeSorted $ (s1, e1) : xs -- interval1 contains interval 2
+    | e1 >= e2 = mergeSorted $ (s1, e1) : xs -- interval1 contains interval2
     | e1 >= s2 = mergeSorted $ (s1, e2) : xs
     | otherwise = (s1, e1) : mergeSorted ((s2, e2) : xs)
 
